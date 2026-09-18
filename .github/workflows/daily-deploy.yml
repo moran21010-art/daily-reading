@@ -2,12 +2,11 @@ name: Daily Reading Deploy
 
 on:
   schedule:
-    # 每天 UTC 07:00 运行；北京时间是 15:00
     - cron: '0 7 * * *'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -18,52 +17,31 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          fi
+      - run: pip install -r requirements.txt
 
-      - name: Generate daily reading HTML
-        env:
-          SITE_PREFIX: /daily-reading-site
-          BASE_PATH: /daily-reading-site
-        run: python scripts/daily_reading.py
+      - run: python scripts/daily_reading.py
 
-      - name: Export GitHub Pages site
-        env:
-          SITE_PREFIX: /daily-reading-site
-          BASE_PATH: /daily-reading-site
-        run: python scripts/export_github_pages.py
+      - run: python scripts/export_github_pages.py
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v5
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: _site
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4
